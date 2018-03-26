@@ -15,6 +15,9 @@
 #define VERSION "0.10"
 
 // pinout setting
+#define RESETPIN 12
+#define DHT11PIN 0
+
 #define RECV_PIN 13    // D7 - GPIO13
 #define TRANS_PIN 4   // D5 - GPIO14 // I want to confirm that, so, D5 is connected to tramsmitter in sender, correct?
 #define TRIGGER_PIN 15 // D8 - GPIO15
@@ -27,6 +30,7 @@
 #define   SUFFIX_REMOTE "/remote"
 #define   SUFFIX_NOTIFY  "/notify"
 #define DEFAULT_MQTT_PORT 1883
+
 // ----------------------------------------------------------------
 // Global includes
 #include <ESP8266WiFi.h>

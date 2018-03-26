@@ -1,11 +1,9 @@
 
-/*
-Date - 2018.01.10
-*/
 
 #include "globals.h"
 #include "FiniteStateMachine.h"
 #include "FBD.h"
+#include "dht_nonblocking.h"
 
 // there are two FSM instanecs, 
 // one is for mqtt connection
@@ -38,26 +36,31 @@ TON buttonTON(200);
 Rtrg buttonPressed;
 Ftrg buttonReleased;
 
+// nonblocking dht11 object
+DHT_nonblocking dht_sensor(DHT11PIN, DHT_TYPE_11);
 
 /* init setup routine */
 void setup(void)
 {
-  // 
-  Serial.begin(115200);
+	// 
+	Serial.begin(115200);
 
-  // delay for reset button
-  delay(5000);
+	// delay for reset button
+	delay(5000);
 
-  // setup button trigger pin mode 
-  pinMode(TRIGGER_PIN, INPUT_PULLUP);
+	// setup button trigger pin mode 
+	pinMode(TRIGGER_PIN, INPUT_PULLUP);
+	
+	// setup reset button pin
+	pinMode(RESETPIN, INPUT_PULLUP);
 
 #ifdef LED_PIN
-  pinMode(LED_PIN, OUTPUT);
+	pinMode(LED_PIN, OUTPUT);
 #endif
 
-  /* part for setting configuration*/
-  if (SPIFFS.begin())
-  {
+	/* part for setting configuration*/
+	if (SPIFFS.begin())
+	{
     sendToDebug(" checking file system on SPIFFS\n");
     if (SPIFFS.exists("/config.json"))
     {
@@ -131,7 +134,7 @@ void setup(void)
   // and enter AP mode for configuration, so if you want to change wifi setting, device id, mqtt info etc,
 
   // plugged jumper and reset esp8266, if so , you can find softap of ESP8266 on Phone etc
-  if (digitalRead(TRIGGER_PIN) == BUTTON_ACTIVE_LEVEL || (!SPIFFS.exists("/config.json")))
+  if (digitalRead(RESETPIN) == BUTTON_ACTIVE_LEVEL || (!SPIFFS.exists("/config.json")))
   {
     Serial.println("reseted setting");
     // Force enter configuration
@@ -151,7 +154,6 @@ void setup(void)
     ESP.reset();
     delay(5000);
   }
-
 
 #ifdef LED_PIN
   digitalWrite(LED_PIN, HIGH);
@@ -214,8 +216,6 @@ void setup(void)
     }
   }
 
-
-
   // connect to wifi AP and mqtt broker using saved information
   sendToDebug(String("* Connected to ") + String(WiFi.SSID()) + "\n");
   sendToDebug(String("* IP address: ") + String(WiFi.localIP()) + "\n");
@@ -263,14 +263,83 @@ void mqttNoneModeUpdate()
 }
 
 
+bool publishTemperatureData(double farenheight)
+{
+	StaticJsonBuffer<128> jsonBuffer;
+	JsonObject& root = jsonBuffer.createObject();
+	String tempData;
+	tempData = String(farenheight, 2);
+	root["dht11_temp"] = tempData.c_str();
+	char buff[64];
+	root.printTo(buff);
+
+	if (mqttClient.connected())
+	{
+		String topicNotify = String(device_id) + SUFFIX_NOTIFY;
+		mqttClient.publish(topicNotify.c_str(), buff, true);
+		return true;
+	}
+	return false;
+}
+
+bool publishDht11Error()
+{
+	StaticJsonBuffer<128> jsonBuffer;
+	JsonObject& root = jsonBuffer.createObject();
+	root["notify"] = "dht11 sensor does not exist";
+	char buff[64];
+	root.printTo(buff);
+
+	if (mqttClient.connected())
+	{
+		String topicNotify = String(device_id) + SUFFIX_NOTIFY;
+		mqttClient.publish(topicNotify.c_str(), buff, true);
+		return true;
+	}
+
+	return false;
+}
 
 /****************************************************************
 * Main loop
 */
 void loop(void)
 {
-  // Finite machine for mqtt connection
-  mqttMachine.update();
+	//
+	static float temperature, tempFarenheight, humidity;
+	static bool dht11_Error = false;
+
+	static uint32_t dht11_TimeStamp = millis();
+	// Measure once every four seconds.
+	if (millis() - dht11_TimeStamp > 4000ul)
+	{
+		if (dht_sensor.measure(&temperature, &humidity) == true)
+		{
+			tempFarenheight = temperature;
+			Serial.print(F("current farenheight temperature is "));
+			Serial.println(tempFarenheight, 2);
+			dht11_TimeStamp = millis();
+		}
+		else if (millis() - dht11_TimeStamp > 12000ul)
+		{
+			Serial.println(F("dht11 sensor does not exist"));
+			dht11_TimeStamp = millis();
+			if(!dht11_Error)
+				publishDht11Error();
+			dht11_Error = true;
+		}
+	}
+
+	static uint32_t dht11SendingTime = millis();
+	if (millis() - dht11SendingTime > 30000)
+	{
+		dht11SendingTime = millis();
+		Serial.println(F("published temperature data"));
+		publishTemperatureData(tempFarenheight);
+	}
+
+	// Finite machine for mqtt connection
+	mqttMachine.update();
 
   // checking button event 
   buttonTON.IN = (digitalRead(TRIGGER_PIN) == BUTTON_ACTIVE_LEVEL);
@@ -280,35 +349,35 @@ void loop(void)
   buttonReleased.IN = buttonTON.Q;
   buttonReleased.update();
 
-  // if button is pressed 
-  if (buttonPressed.Q)
-  {
-    // excuted only once when button is pressed
-    Serial.println(F("button pressed."));
+	// if button is pressed 
+	if (buttonPressed.Q)
+	{
+		// excuted only once when button is pressed
+		Serial.println(F("button pressed."));
 
-    StaticJsonBuffer<128> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    root["notify"] = "button_pressed";
-    char buff[64];
-    root.printTo(buff);
+		StaticJsonBuffer<128> jsonBuffer;
+		JsonObject& root = jsonBuffer.createObject();
+		root["notify"] = "button_pressed";
+		char buff[64];
+		root.printTo(buff);
     
-    if (mqttClient.connected())
-    {
-      String topicNotify = String(device_id) + SUFFIX_NOTIFY;
-      mqttClient.publish(topicNotify.c_str(), buff, true);
-    }
+		if (mqttClient.connected())
+		{
+			String topicNotify = String(device_id) + SUFFIX_NOTIFY;
+			mqttClient.publish(topicNotify.c_str(), buff, true);
+		}
 
-    if (airConController.isInState(airConIdle))
-    {
-      Serial.println(F("entered into step1 from idle, send raw1 code"));
+		if (airConController.isInState(airConIdle))
+		{
+			Serial.println(F("entered into step1 from idle, send raw1 code"));
 
+			// send raw01 via IR module
+			irsend.sendRaw(rawData01, RAWDATA01LEN, TRANSMITTER_FREQ);
 
-      // send raw01 via IR module
-      irsend.sendRaw(rawData01, RAWDATA01LEN, TRANSMITTER_FREQ);
-      // enter 
-      airConController.transitionTo(airConStep1);
-    }
-  }
+			// enter 
+			airConController.transitionTo(airConStep1);
+		}
+	}
 
   // when button is released 
   if (buttonReleased.Q)

@@ -29,7 +29,6 @@ unsigned long lastTSMQTTReconect;
 unsigned long autoStartFreq = 300000; // Frequency of autostart
 bool autoStartSecond = false;
 
-
 // ------------------------------------------------
 // Global objects
 IRrecv irrecv(RECV_PIN);
