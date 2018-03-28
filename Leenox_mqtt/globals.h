@@ -58,6 +58,10 @@ extern char mqtt_secure[1];
 extern bool mqtt_secure_b;
 extern int mqtt_port_i;
 
+extern char pubIntervalTmp[10];
+extern uint32_t pubInterval;
+
+
 extern bool shouldSaveConfig ; //flag for saving data
 extern String clientName; // MQTT client name
 extern bool rawMode; // Raw mode receiver status

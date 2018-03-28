@@ -18,6 +18,9 @@ char mqtt_secure[1];
 bool mqtt_secure_b;
 int mqtt_port_i;
 
+char pubIntervalTmp[10];
+uint32_t pubInterval;
+
 bool buttonState = 1 - BUTTON_ACTIVE_LEVEL; // State of control button
 bool autoSendMode = false;
 bool shouldSaveConfig = false; //flag for saving data
