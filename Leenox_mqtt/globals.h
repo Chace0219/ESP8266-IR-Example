@@ -15,20 +15,24 @@
 #define VERSION "0.10"
 
 // pinout setting
-#define RESETPIN 12
-#define DHT11PIN 0
+#define RESETPIN 12     // D6
+#define DHT11PIN 0      // D3
 
-#define RECV_PIN 13    // D7 - GPIO13
-#define TRANS_PIN 4   // D5 - GPIO14 // I want to confirm that, so, D5 is connected to tramsmitter in sender, correct?
-#define TRIGGER_PIN 15 // D8 - GPIO15
-#define LED_PIN 2      // D4 - GPIO2
+#define RECV_PIN 13     // D7 - GPIO13
+#define TRANS_PIN 4     // D2
+#define TRIGGER_PIN 15  // D8
+#define LED_PIN 2       // D4 - GPIO2
 #define BUTTON_ACTIVE_LEVEL HIGH
-#define MQTTRETRYINTERVAL 30000 // mqtt retry interval when it is disconnected from broker
-#define   TRANSMITTER_FREQ 38
+#define MQTTRETRYINTERVAL 10000 // mqtt retry interval when it is disconnected from broker
+#define TRANSMITTER_FREQ 38
 
-#define   SUFFIX_WILL  "/status"
-#define   SUFFIX_REMOTE "/remote"
-#define   SUFFIX_NOTIFY  "/notify"
+#define SUFFIX_TEMP  "/pub/temp"
+#define SUFFIX_HUMI  "/pub/humi"
+#define SUFFIX_BUTT  "/pub/button"
+#define SUFFIX_SUBS  "/sub/IR"
+
+#define SUFFIX_WILL  "/status"
+#define SUFFIX_NOTIFY  "/notify"
 #define DEFAULT_MQTT_PORT 1883
 
 // ----------------------------------------------------------------
@@ -99,5 +103,10 @@ void sendToDebug(String message);
 extern uint16_t rawData01[RAWDATA01LEN];
 extern uint16_t rawData02[RAWDATA02LEN]; //?
 
+#define RAWDATALEN  199
+extern const uint64_t IRData[];
+extern const uint16_t IRcommands[][RAWDATALEN];
+int8_t findIndexIRData(uint64_t command);
 #endif
+
 

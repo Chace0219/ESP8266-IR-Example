@@ -2,9 +2,9 @@
 #include "dht_nonblocking.h"
 /*
 	The conversion formula for Celsius to other scale are given below.
-	Fahrenheit:-T(°F) = T(°C) × 9 / 5 + 32
-	Kelvin : -T(K) = T(°C) + 273.15
-	Rankine : -T(°R) = (T(°C) + 273.15) × 9 / 5
+	Fahrenheit:-T(ï¿½F) = T(ï¿½C) ï¿½ 9 / 5 + 32
+	Kelvin : -T(K) = T(ï¿½C) + 273.15
+	Rankine : -T(ï¿½R) = (T(ï¿½C) + 273.15) ï¿½ 9 / 5
 */
 
 #define DHT_IDLE                  0
