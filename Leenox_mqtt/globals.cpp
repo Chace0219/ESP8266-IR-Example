@@ -33,7 +33,8 @@ bool autoStartSecond = false;
 // ------------------------------------------------
 // Global objects
 IRrecv irrecv(RECV_PIN);
-IRsend irsend(TRANS_PIN);
+// IRsend irsend(TRANS_PIN);
+IRMideaAC irsend(TRANS_PIN);
 
 WiFiClient wifiClient;
 WiFiClientSecure wifiClientSecure;

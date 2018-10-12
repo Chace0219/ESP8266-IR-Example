@@ -51,6 +51,19 @@
 #include <ArduinoJson.h>          // https://github.com/bblanchon/ArduinoJson (id: 64)
 #include <EEPROM.h>
 #include <ESP8266httpUpdate.h>
+#include <IRutils.h>
+// The following are only needed for extended decoding of A/C Messages
+#include <ir_Coolix.h>
+#include <ir_Daikin.h>
+#include <ir_Fujitsu.h>
+#include <ir_Gree.h>
+#include <ir_Haier.h>
+#include <ir_Kelvinator.h>
+#include <ir_Mitsubishi.h>
+#include <ir_Midea.h>
+#include <ir_Panasonic.h>
+#include <ir_Samsung.h>
+#include <ir_Toshiba.h>
 
 // Global variables
 extern char mqtt_server[40];

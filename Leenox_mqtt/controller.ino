@@ -6,6 +6,7 @@
 #include "FBD.h"
 #include "dht_nonblocking.h"
 
+
 // there are two FSM instanecs, 
 // one is for mqtt connection
 // so, if mqtt connection is disconnecetd by any reason, 
@@ -325,9 +326,9 @@ void loop(void)
         if (dht_sensor.measure(&temperature, &humidity) == true)
         {
             tempFarenheight = temperature * 1.8F + 32.0F;
-            Serial.println(tempFarenheight, 2);
-            Serial.print(F("F, "));
             Serial.print(tempFarenheight, 2);
+            Serial.print(F("F, "));
+            Serial.print(humidity, 2);
             Serial.println(F("%"));
             dht11_TimeStamp = millis();
         }
@@ -382,7 +383,7 @@ void loop(void)
             Serial.println(F("entered into step1 from idle, send raw1 code"));
 
             // send raw01 via IR module
-            irsend.sendRaw(rawData01, RAWDATA01LEN, TRANSMITTER_FREQ);
+            // irsend.sendRaw(rawData01, RAWDATA01LEN, TRANSMITTER_FREQ);
             // enter 
             airConController.transitionTo(airConStep1);
         }
@@ -408,7 +409,7 @@ void loop(void)
         if (airConController.timeInCurrentState() > 5000)
         {
             Serial.println(F("entered into step2 from step1, send raw2 code"));
-            irsend.sendRaw(rawData02, RAWDATA02LEN, TRANSMITTER_FREQ);
+            // irsend.sendRaw(rawData02, RAWDATA02LEN, TRANSMITTER_FREQ);
             airConController.transitionTo(airConStep2);
         }
     }
@@ -445,27 +446,18 @@ void MQTTcallback(char* topic, byte* payload, unsigned int length)
     sendToDebug(String("Message: \"") + msgString + "\"\n");
     sendToDebug(String("Length: ") + String(length, DEC) + "\n");
 
+    unsigned long irSendCommandHex = hexToDec(msgString);
+    Serial.print("IRDATA is 0x");
+    Serial.println(String(irSendCommandHex, HEX));
+    // irsend.setRaw(0xA1A06AFFFF44);
+    // irsend.send();
+    
     /*
-    // parse command whether valid command
-    StaticJsonBuffer<512> jsonBuffer;
-    JsonObject& root = jsonBuffer.parseObject(msgString.c_str());
-
-    if (!root.success()) {
-        Serial.println("remote command from mqtt is invalid");
-        return;
-    }
-    // so, when command has {"active":true}, program will enter sending signal cycle ( send raw01 and then after 5 secs send 
-    // raw02
-    bool active = root["active"];
-    */
-
-    uint64_t irSendCommandHex = strtoul(msgString.c_str(), NULL, 16);
-    int8_t commandIndex = findIndexIRData(irSendCommandHex);
-    sendToDebug(String("index of IRDATA is ") + String(commandIndex) + "\n");
     if (commandIndex != -1)
     {
-        irsend.sendRaw((uint16_t*)IRcommands[commandIndex], RAWDATALEN, TRANSMITTER_FREQ);
-    }
+        irsend.sendMidea(irSendCommandHex, );
+        // irsend.sendRaw((uint16_t*)IRcommands[commandIndex], RAWDATALEN, TRANSMITTER_FREQ);
+    }*/
     /*
     if (active == true)
     {
@@ -522,3 +514,21 @@ void connect_to_MQTT()
     }
 }
 
+unsigned long hexToDec(String hexString) {
+
+    unsigned long decValue = 0;
+    int nextInt;
+
+    for (int i = 0; i < hexString.length(); i++) {
+
+        nextInt = int(hexString.charAt(i));
+        if (nextInt >= 48 && nextInt <= 57) nextInt = map(nextInt, 48, 57, 0, 9);
+        if (nextInt >= 65 && nextInt <= 70) nextInt = map(nextInt, 65, 70, 10, 15);
+        if (nextInt >= 97 && nextInt <= 102) nextInt = map(nextInt, 97, 102, 10, 15);
+        nextInt = constrain(nextInt, 0, 15);
+
+        decValue = (decValue * 16) + nextInt;
+    }
+
+    return decValue;
+}
